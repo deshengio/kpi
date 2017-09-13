@@ -6,6 +6,13 @@ __pycache__/
 # C extensions
 *.so
 
+# virtual ENV
+Include/
+Lib/
+Scripts/
+tcl/
+pip-selfcheck.json
+
 # Distribution / packaging
 .Python
 env/
