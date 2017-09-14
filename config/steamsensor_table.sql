@@ -9,7 +9,8 @@ CREATE TABLE steamsensor
   TotalFlow real NOT NULL,
   Temperature real,
   Pressure real,
-  time timestamp with time zone NOT NULL
+  lasttime timestamp with time zone NOT NULL,
+  lastid integer UNIQUE
 );
 ALTER TABLE steamsensor
   OWNER TO kpiadmin;

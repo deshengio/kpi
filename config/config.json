@@ -62,7 +62,7 @@
         }
     ],
     "SourceDBConnection":{
-        "DatabaseName":"Thingworx",
+        "DatabaseName":"thingworx",
         "Host":"localhost",
         "Port":5432,
         "User":"twreader",

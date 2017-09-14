@@ -9,6 +9,7 @@ CREATE TABLE datapool
   ValueStreamName text NOT NULL,
   KeyPropertyName text NOT NULL,
   lastid integer UNIQUE,
+  lasttime timestamp with time zone NOT NULL,
   closed boolean Default false
 );
 ALTER TABLE datapool
