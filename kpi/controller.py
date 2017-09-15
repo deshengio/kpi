@@ -85,9 +85,20 @@ def startProcess(kpiconfig):
 def loopProcess(kpiconfig):
     try:
         while True:
+            starttime = time.time()
+            print("Start a new round at:{}\n".format(starttime))
             startProcess(kpiconfig)
-            print("\n\n.....sleeping....\n\n")
-            time.sleep(kpiconfig.intervalCheckTime)
+            endtime = time.time()
+            timecost = int(endtime-starttime)
+            print("\nEnd at at:{}, spent {} seconds".format(endtime, timecost))
+            remaining = kpiconfig.intervalCheckTime-timecost
+            if remaining > 5:
+                print("\n\n.....go to sleep for {} seconds....\n\n".format(remaining))
+                time.sleep(remaining)
+            else:
+                print("\n\n.....remaining time is less than 5 seconds, let's kick off next round.")
+                time.sleep(2)
+
     except KeyboardInterrupt:
         print('Stopped')
 

@@ -123,7 +123,7 @@
                 {
                     "ThingName":"Asset_1-1_SinkingEDM",
                     "TargetTableName":"ManufacturingAsset",
-                    "KeyPropertyName":"totalCount",
+                    "KeyPropertyName":"Current",
                     "ValueStreamName":"ValueStream_Asset_1-1_SinkingEDM"
                 }
             ]
