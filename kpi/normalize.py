@@ -9,16 +9,6 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 import configuration
 import db
 
-def initNewThing(sourceConn, targetConn, valueStreamName, thing):
-    '''
-    create first row of recourd in target db.
-    :param sourceConn:
-    :param targetConn:
-    :param valueStreamName:
-    :param thing:
-    :return:
-    '''
-
 def isNewThing(conn, valueStreamName,thingName,targetTable):
     '''
     check whether this is a new thing to process.
@@ -46,7 +36,7 @@ def isNewThing(conn, valueStreamName,thingName,targetTable):
     #pprint(check_result)
     return set(check_result) == set([0,0])
 
-def initThingFirstRow(dbManager,valueStreamName,thing):
+def initThingFirstRow(dbManager,thing):
     '''
     if this thing is new, then build up first row of record into target db table.
     :param dbManager:
@@ -76,7 +66,7 @@ def initThingFirstRow(dbManager,valueStreamName,thing):
     # step 1, get basic time from key property
     query_key_property = "select entry_id,time,property_type,property_value,property_name "
     query_key_property += "\n from value_stream "
-    query_key_property += "\n where entity_id='{}' ".format(valueStreamName)
+    query_key_property += "\n where entity_id='{}' ".format(thing['ValueStreamName'])
     query_key_property += "\n and source_id='{}' ".format(thing['ThingName'])
     query_key_property += "\n and property_name='{}' ".format(thing['KeyPropertyName'])
     query_key_property += "\n order by time desc limit 1;"
@@ -105,7 +95,7 @@ def initThingFirstRow(dbManager,valueStreamName,thing):
     #combine non-key properties
     for property in thing['Properties']:
         if property['PropertyName'] != property_name:
-            other_property_value=queryPropertyValueByTime(dbManager, valueStreamName, thing, lastTime, property)
+            other_property_value=queryPropertyValueByTime(dbManager, thing, lastTime, property)
             fields_str += ', {}'.format(property['PropertyName'])
             if property['PropertyType'] in ['NUMBER','INTEGER']:
                 #NUMBER=1 in DB, INTEGER=22 in DB
@@ -130,7 +120,7 @@ def initThingFirstRow(dbManager,valueStreamName,thing):
     #sql to keep record in data pool
     sql_datapool = "insert into datapool (ThingName,ValueStreamName,KeyPropertyName,lastid,lasttime)"
     sql_datapool += "\n values ('{}','{}','{}',{},'{}')".format(thing['ThingName'],
-                                                           valueStreamName,
+                                                           thing['ValueStreamName'],
                                                            thing['KeyPropertyName'],
                                                            entry_id,
                                                             lastTime)
@@ -147,7 +137,7 @@ def initThingFirstRow(dbManager,valueStreamName,thing):
     return sql_insert_str, sql_datapool
 
 
-def queryPropertyValueByTime(dbManager,valueStreamName,thing,lastTime,property):
+def queryPropertyValueByTime(dbManager,thing,lastTime,property):
     '''
     query last value of property earlier than last time.
     :param dbManager:
@@ -159,7 +149,7 @@ def queryPropertyValueByTime(dbManager,valueStreamName,thing,lastTime,property):
     '''
     query_property = "select property_value "
     query_property += "\n from value_stream "
-    query_property += "\n where entity_id='{}' ".format(valueStreamName)
+    query_property += "\n where entity_id='{}' ".format(thing['ValueStreamName'])
     query_property += "\n and source_id='{}' ".format(thing['ThingName'])
     query_property += "\n and property_name='{}' ".format(property['PropertyName'])
     query_property += "\n and time<='{}' ".format(lastTime)
@@ -194,7 +184,7 @@ def verifyTargetTables(conn, owner, tables):
     #pprint(target_tables)
     return set(tables) == set(target_tables)
 
-def normalizeThingRecords(dbManager,valueStreamName,thing):
+def normalizeThingRecords(dbManager,thing):
     '''
     normalize Thing record when first row exists.
     :param dbManager:
@@ -209,11 +199,11 @@ def normalizeThingRecords(dbManager,valueStreamName,thing):
     #step 5, query each property and feed in list one by one.
     #Step 6, construct sql base on all list.
     #step 1
-    lastid, lasttime = queryDatapoolLastRow(dbManager,valueStreamName,thing)
+    lastid, lasttime = queryDatapoolLastRow(dbManager,thing)
     if not lastid or not lasttime:
         return None, None
 
-    rows = queryPropertyWithTimeWindow(dbManager,valueStreamName,thing['KeyPropertyName'], lasttime, None)
+    rows = queryPropertyWithTimeWindow(dbManager,thing['KeyPropertyName'], lasttime, None)
     rowCount = 0
     newLatestTime = None
 
@@ -249,7 +239,7 @@ def normalizeThingRecords(dbManager,valueStreamName,thing):
 
     #print("\n\n\n\nThing Name:{}, Row:{}".format(thing['ThingName'], rowCount))
     #pprint(total_values)
-    default_values = queryLastNormalizedRow(dbManager,valueStreamName,thing,lastid)
+    default_values = queryLastNormalizedRow(dbManager,thing,lastid)
     #print("\n\ndefault values")
     #pprint(default_values)
 
@@ -261,7 +251,7 @@ def normalizeThingRecords(dbManager,valueStreamName,thing):
             continue
         total_values[property['PropertyName']], value_types = bendPropertyValueToList(
                 dbManager,
-                valueStreamName,
+                thing['ValueStreamName'],
                 property['PropertyName'],
                 lasttime,
                 newLatestTime,
@@ -326,7 +316,7 @@ def findIndexBinsByTime(property_time, time_bins,availableStartIndex=0):
     return availableStartIndex
 
 
-def queryLastNormalizedRow(dbManager, valueStreamName,thing,lastid):
+def queryLastNormalizedRow(dbManager, thing,lastid):
     '''
     query last row of normalized data as default value.
     :param dbManager:
@@ -362,7 +352,7 @@ def queryLastNormalizedRow(dbManager, valueStreamName,thing,lastid):
     return default_values
 
 
-def queryPropertyWithTimeWindow(dbManager, valueStreamName, propertyName, starttime,endtime=None):
+def queryPropertyWithTimeWindow(dbManager, propertyName, starttime,endtime=None):
     '''
     fetch property values from value stream table in source db.
     :param dbManager:
@@ -373,7 +363,7 @@ def queryPropertyWithTimeWindow(dbManager, valueStreamName, propertyName, startt
     :return:
     '''
     query_str = "select entry_id, property_value, time,property_type from value_stream"
-    query_str += "\n where entity_id='{}'".format(valueStreamName)
+    query_str += "\n where entity_id='{}'".format(thing['ValueStreamName'])
     query_str += "\n and source_id='{}'".format(thing['ThingName'])
     query_str += "\n and property_name='{}'".format(propertyName)
     query_str += "\n and time>'{}'".format(starttime)
@@ -385,7 +375,7 @@ def queryPropertyWithTimeWindow(dbManager, valueStreamName, propertyName, startt
     curr.execute(query_str)
     return curr.fetchall()
 
-def queryDatapoolLastRow(dbManager, valueStreamName,thing):
+def queryDatapoolLastRow(dbManager, thing):
     '''
     retrive last row of current thing in data row, None if doesn't exist.
     :param dbManager:
@@ -394,7 +384,7 @@ def queryDatapoolLastRow(dbManager, valueStreamName,thing):
     :return:
     '''
     query_str = "select lastid, lasttime from datapool"
-    query_str += "\n where valueStreamName='{}'".format(valueStreamName)
+    query_str += "\n where valueStreamName='{}'".format(thing['ValueStreamName'])
     query_str += "\n and ThingName='{}'".format(thing['ThingName'])
     query_str += "\n and KeyPropertyName='{}'".format(thing['KeyPropertyName'])
     query_str += "\n order by lasttime desc limit 1;"
@@ -407,7 +397,7 @@ def queryDatapoolLastRow(dbManager, valueStreamName,thing):
         lastid, lasttime = row
     return lastid, lasttime
 
-def pushIncreamentalDataToDb(dbManager,valueStreamName, thing,total_values, value_types):
+def pushIncreamentalDataToDb(dbManager, thing,total_values, value_types):
     '''
     write increamental data to target DB and datapool
     :param dbManager:
@@ -468,7 +458,7 @@ def pushIncreamentalDataToDb(dbManager,valueStreamName, thing,total_values, valu
     datapool_insert_str = "insert into datapool (ThingName,ValueStreamName,KeyPropertyName,lastid,lasttime) "
     datapool_insert_str += "\nvalues ('{}','{}','{}',{},'{}');".format(
         thing['ThingName'],
-        valueStreamName,
+        thing['ValueStreamName'],
         thing['KeyPropertyName'],
         total_values['lastid'][0],
         total_values['lasttime'][0]
@@ -494,9 +484,9 @@ if __name__ == '__main__':
 
     for thread in kpiconfig.threads:
         for thing in thread['Things']:
-            if isNewThing(dbManager.targetConnection, thread['ValueStreamName'],
+            if isNewThing(dbManager.targetConnection, thing['ValueStreamName'],
                           thing['ThingName'],thing['TargetTableName']):
-                insert_sql,datapool_sql = initThingFirstRow(dbManager,thread['ValueStreamName'],thing)
+                insert_sql,datapool_sql = initThingFirstRow(dbManager,thing)
                 if not insert_sql:
                     # no data presented in value stream yet.
                     print("no data yet for this thing.")
@@ -508,10 +498,10 @@ if __name__ == '__main__':
                     curr.close()
             else:
                 print("it's not new:")
-                total_values,value_types = normalizeThingRecords(dbManager, thread['ValueStreamName'], thing)
+                total_values,value_types = normalizeThingRecords(dbManager, thing)
                 if total_values:
                     pprint(total_values)
-                    if pushIncreamentalDataToDb(dbManager,thread['ValueStreamName'], thing,total_values,value_types):
+                    if pushIncreamentalDataToDb(dbManager, thing,total_values,value_types):
                         #print("Finished")
                         dbManager.targetConnection.commit()
                         #curr.close()

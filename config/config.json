@@ -4,6 +4,7 @@
     "threads":[
         {
             "ValueStreamName":"SteamSensorValueStream",
+            "KeyPropertyName":"TotalFlow",
             "ThreadProperties":[
                 {
                     "PropertyName":"TotalFlow",
@@ -24,18 +25,15 @@
             "Things":[
                 {
                     "ThingName":"SteamSensor2",
-                    "TargetTableName":"SteamSensor",
-                    "KeyPropertyName":"TotalFlow"
+                    "TargetTableName":"SteamSensor"
                 },
                 {
                     "ThingName":"SteamSensor1",
-                    "TargetTableName":"SteamSensor",
-                    "KeyPropertyName":"TotalFlow"
+                    "TargetTableName":"SteamSensor"
                 },
                 {
                     "ThingName":"SteamSensor3",
-                    "TargetTableName":"SteamSensor",
-                    "KeyPropertyName":"TotalFlow"
+                    "TargetTableName":"SteamSensor"
                 }
             ]
         },

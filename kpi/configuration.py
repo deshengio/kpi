@@ -40,8 +40,13 @@ class KpiConfiguration():
         newThread['Things'] = []
         for thing in thread['Things']:
             newThing = {}
-            for keyName in ['ThingName','TargetTableName','KeyPropertyName']:
-                newThing[keyName] = thing[keyName]
+            newThing['ThingName'] = thing['ThingName']
+            for keyName in ['ValueStreamName','TargetTableName','KeyPropertyName']:
+                newThing[keyName] = thing.get(keyName,thread.get(keyName,None))
+
+            for keyName in newThing:
+                if not newThing[keyName]:
+                    raise ValueError("Key:{} doesn't have right value for Thing:".format(keyName,newThing['ThingName']))
 
             newThing['Properties']=[]
             #newThing['Properties'].extend(commonProperties)
