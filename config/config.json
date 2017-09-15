@@ -117,17 +117,20 @@
                 {
                     "ThingName":"Asset_2-1_Bender",
                     "TargetTableName":"ManufacturingAsset",
-                    "KeyPropertyName":"Current"
+                    "KeyPropertyName":"Current",
+                    "ValueStreamName":"ValueStream_Asset_2-1_Bender"
                 },
                 {
                     "ThingName":"Asset_1-1_WireEDM",
                     "TargetTableName":"ManufacturingAsset",
-                    "KeyPropertyName":"Current"
+                    "KeyPropertyName":"Current",
+                    "ValueStreamName":"ValueStream_Asset_1-1_WireEDM"
                 },
                 {
                     "ThingName":"Asset_1-1_SinkingEDM",
                     "TargetTableName":"ManufacturingAsset",
-                    "KeyPropertyName":"Current"
+                    "KeyPropertyName":"Current",
+                    "ValueStreamName":"ValueStream_Asset_1-1_SinkingEDM"
                 }
             ]
         }
