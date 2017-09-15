@@ -423,21 +423,35 @@ def pushIncreamentalDataToDb(dbManager,valueStreamName, thing,total_values, valu
     properties_name = list(total_values.keys()) #all properties, including lasttime, lastid
 
     insert_sql = "insert into {} ".format(thing['TargetTableName'])
-    insert_sql += "\n(ThingName," + ",".join(properties_name) + ")"
+    insert_sql += "\n(ThingName," + ",".join(properties_name) + ") \nValues "
     #insert_sql += "\nvalues (" + ",".join(['%s'] * len(properties_name)) + ")"
 
     curr = dbManager.targetConnection.cursor()
+    insert_full_sql = None
     for index in range(maxRows):
-        insert_full_sql = insert_sql
-        insert_full_sql += "\nValues ('{}'".format(thing['ThingName'])
+        if index % dbManager.batchSize == 0:
+            # batch process
+            if insert_full_sql:
+                insert_full_sql += "\n;"
+                print(insert_full_sql)
+                curr.execute(insert_full_sql)
+            insert_full_sql = insert_sql    #reset to new sql
+        else:
+            insert_full_sql += ","  #split differnt value set, (),() etc.
+
+        insert_full_sql += "\n('{}'".format(thing['ThingName'])
         for property_name in properties_name:
             if value_types[property_name] == 1 or value_types[property_name] == 22:
                 insert_full_sql += "," + str(total_values[property_name][index])
             else:
                 insert_full_sql += ",'" + str(total_values[property_name][index]) + "'"
 
-        insert_full_sql += ");"
+        insert_full_sql += ")"
 
+        #print(insert_full_sql)
+    if insert_full_sql:
+        #remaining records.
+        insert_full_sql += "\n;"
         print(insert_full_sql)
         curr.execute(insert_full_sql)
 
@@ -491,6 +505,7 @@ if __name__ == '__main__':
                     curr.execute(insert_sql)
                     curr.execute(datapool_sql)
                     dbManager.targetConnection.commit()
+                    curr.close()
             else:
                 print("it's not new:")
                 total_values,value_types = normalizeThingRecords(dbManager, thread['ValueStreamName'], thing)
@@ -499,3 +514,4 @@ if __name__ == '__main__':
                     if pushIncreamentalDataToDb(dbManager,thread['ValueStreamName'], thing,total_values,value_types):
                         #print("Finished")
                         dbManager.targetConnection.commit()
+                        #curr.close()
