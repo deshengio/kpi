@@ -6,7 +6,7 @@ PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-import configuration
+import configurator
 
 class KpiDb():
     def __init__(self):
@@ -92,7 +92,7 @@ def runquery(conn,query):
     return None
 
 if __name__ == '__main__':
-    kpiconfig = configuration.KpiConfiguration(os.path.join(SCRIPT_DIR,"../config/config.json"))
+    kpiconfig = configurator.KpiConfiguration(os.path.join(SCRIPT_DIR,"../config/config.json"))
     #pprint(kpiconfig.threads)
     dbsource = kpiconfig.sourceDBConnection
     dbtarget = kpiconfig.targetDBConnection

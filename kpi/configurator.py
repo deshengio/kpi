@@ -23,6 +23,7 @@ class KpiConfiguration():
             self.safeBuffer = data.get('SafeBuffer',5)
             self.safeMax = data.get('SafeMaxRows', 6005)
             self.batchSize = data.get('BatchSize', 5)
+            self.intervalCheckTime = data.get('IntervalCheckTime',60)   #default to 1 minutes.
 
             self.threads=[]
             for thread in data['threads']:

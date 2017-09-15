@@ -6,7 +6,7 @@ PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-import configuration
+import configurator
 import db
 
 def isNewThing(conn,thing):
@@ -119,7 +119,7 @@ def initThingFirstRow(dbManager,thing):
     sql_insert_str += "\n values " + values_str
     sql_insert_str += "\n;"
 
-    print("sql:{}".format(sql_insert_str))
+    #print("sql:{}".format(sql_insert_str))
 
     #sql to keep record in data pool
     sql_datapool = "insert into datapool (ThingName,ValueStreamName,KeyPropertyName,lastid,lasttime)"
@@ -208,7 +208,7 @@ def normalizeThingRecords(dbManager,thing):
     if not lastid or not lasttime:
         return None, None
 
-    rows = queryPropertyWithTimeWindow(dbManager,thing['ValueStreamName'],thing['KeyPropertyName'], lasttime, None)
+    rows = queryPropertyWithTimeWindow(dbManager,thing,thing['KeyPropertyName'], lasttime, None)
     rowCount = 0
     newLatestTime = None
 
@@ -256,7 +256,7 @@ def normalizeThingRecords(dbManager,thing):
             continue
         total_values[property['PropertyName']], value_types = bendPropertyValueToList(
                 dbManager,
-                thing['ValueStreamName'],
+                thing,
                 property['PropertyName'],
                 lasttime,
                 newLatestTime,
@@ -264,7 +264,7 @@ def normalizeThingRecords(dbManager,thing):
                 default_values[property['PropertyName']],
                 value_types
             )
-    pprint(total_values)
+    #pprint(total_values)
 
     return total_values, value_types
 
@@ -277,9 +277,9 @@ def convertPostgreSqlValueType(property_value, property_type):
 
     return property_value
 
-def bendPropertyValueToList(dbManager,valueStreamName,propertyName,lasttime,newLatestTime,time_bins, defaultValue,value_types):
-    rows = queryPropertyWithTimeWindow(dbManager, valueStreamName, propertyName, lasttime, newLatestTime)
-
+def bendPropertyValueToList(dbManager,thing,propertyName,lasttime,newLatestTime,time_bins, defaultValue,value_types):
+    rows = queryPropertyWithTimeWindow(dbManager, thing, propertyName, lasttime, newLatestTime)
+    valueStreamName=thing['ValueStreamName']
     # assign a list with same length as key property and time, and give default value.
     property_value_list = [defaultValue] * (len(time_bins)-1)
 
@@ -357,7 +357,7 @@ def queryLastNormalizedRow(dbManager, thing,lastid):
     return default_values
 
 
-def queryPropertyWithTimeWindow(dbManager, valueStreamName, propertyName, starttime,endtime=None):
+def queryPropertyWithTimeWindow(dbManager, thing, propertyName, starttime,endtime=None):
     '''
     fetch property values from value stream table in source db.
     :param dbManager:
@@ -368,7 +368,7 @@ def queryPropertyWithTimeWindow(dbManager, valueStreamName, propertyName, startt
     :return:
     '''
     query_str = "select entry_id, property_value, time,property_type from value_stream"
-    query_str += "\n where entity_id='{}'".format(valueStreamName)
+    query_str += "\n where entity_id='{}'".format(thing['ValueStreamName'])
     query_str += "\n and source_id='{}'".format(thing['ThingName'])
     query_str += "\n and property_name='{}'".format(propertyName)
     query_str += "\n and time>'{}'".format(starttime)
@@ -413,6 +413,7 @@ def pushIncreamentalDataToDb(dbManager, thing,total_values, value_types):
     '''
     maxRows = len(total_values['lasttime'])
     if maxRows == 0:  #nothing processed
+        print("Thing:{} has nothing to normalize.".format(thing['ThingName']))
         return False
 
     properties_name = list(total_values.keys()) #all properties, including lasttime, lastid
@@ -428,7 +429,7 @@ def pushIncreamentalDataToDb(dbManager, thing,total_values, value_types):
             # batch process
             if insert_full_sql:
                 insert_full_sql += "\n;"
-                print(insert_full_sql)
+                #print(insert_full_sql)
                 curr.execute(insert_full_sql)
             insert_full_sql = insert_sql    #reset to new sql
         else:
@@ -442,12 +443,13 @@ def pushIncreamentalDataToDb(dbManager, thing,total_values, value_types):
                 insert_full_sql += ",'" + str(total_values[property_name][index]) + "'"
 
         insert_full_sql += ")"
+    print("Thing:{} has {} rows data inserted.".format(thing['ThingName'],maxRows))
 
         #print(insert_full_sql)
     if insert_full_sql:
         #remaining records.
         insert_full_sql += "\n;"
-        print(insert_full_sql)
+        #print(insert_full_sql)
         curr.execute(insert_full_sql)
 
     '''
@@ -470,6 +472,8 @@ def pushIncreamentalDataToDb(dbManager, thing,total_values, value_types):
     )
     curr.execute(datapool_insert_str)
 
+    dbManager.targetConnection.commit()
+    curr.close()
     return True
 
 def queryTableListFromThread(thread):
@@ -561,12 +565,13 @@ def createTableForThread(conn,owner,tableName,thread):
     alert_sql = "ALTER TABLE {}\n".format(tableName)
     alert_sql += "  OWNER TO {};".format(owner)
 
-    print(create_sql)
+    #print(create_sql)
     curr = conn.cursor()
     curr.execute(create_sql)
     curr.execute(alert_sql)
     conn.commit()
     curr.close()
+    print("Table:{} created.".format(tableName))
     return True
 
 
@@ -586,7 +591,7 @@ def buildRequiredTables(conn, owner, required_tables, thread):
             createTableForThread(conn,owner,tableName,thread)
 
 if __name__ == '__main__':
-    kpiconfig = configuration.KpiConfiguration(os.path.join(SCRIPT_DIR,"../config/config.json"))
+    kpiconfig = configurator.KpiConfiguration(os.path.join(SCRIPT_DIR,"../config/config.json"))
     #pprint(kpiconfig.threads)
     dbsource = kpiconfig.sourceDBConnection
     dbtarget = kpiconfig.targetDBConnection
@@ -620,11 +625,11 @@ if __name__ == '__main__':
                     dbManager.targetConnection.commit()
                     curr.close()
             else:
-                print("it's not new:")
+                #print("it's not new:")
                 total_values,value_types = normalizeThingRecords(dbManager, thing)
                 if total_values:
-                    pprint(total_values)
-                    if pushIncreamentalDataToDb(dbManager, thing,total_values,value_types):
+                    #pprint(total_values)
+                    pushIncreamentalDataToDb(dbManager, thing,total_values,value_types)
                         #print("Finished")
-                        dbManager.targetConnection.commit()
+                        #dbManager.targetConnection.commit()
                         #curr.close()

@@ -1,6 +1,7 @@
 {
     "CommonProperties":[
     ],
+    "IntervalCheckTime": 60,
     "threads":[
         {
             "ValueStreamName":"SteamSensorValueStream",
@@ -122,7 +123,7 @@
                 {
                     "ThingName":"Asset_1-1_SinkingEDM",
                     "TargetTableName":"ManufacturingAsset",
-                    "KeyPropertyName":"Current",
+                    "KeyPropertyName":"totalCount",
                     "ValueStreamName":"ValueStream_Asset_1-1_SinkingEDM"
                 }
             ]
