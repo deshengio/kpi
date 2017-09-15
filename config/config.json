@@ -71,11 +71,6 @@
                     "DefaultValue":0.0
                 },
                 {
-                    "PropertyName":"anomalyAlertProperties",
-                    "PropertyType":"STRING",
-                    "DefaultValue":"GOOD"
-                },
-                {
                     "PropertyName":"anomalyStatus",
                     "PropertyType":"INTEGER",
                     "DefaultValue":0

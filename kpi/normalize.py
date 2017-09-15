@@ -9,7 +9,7 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 import configuration
 import db
 
-def isNewThing(conn, valueStreamName,thingName,targetTable):
+def isNewThing(conn,thing):
     '''
     check whether this is a new thing to process.
     look up both tables and check whether records exists or not.
@@ -18,6 +18,10 @@ def isNewThing(conn, valueStreamName,thingName,targetTable):
     :param thingName:
     :return:
     '''
+    #valueStreamName, thingName, targetTable
+    valueStreamName = thing['ValueStreamName']
+    thingName = thing['ThingName']
+    targetTable = thing['TargetTableName']
     query_datapool = "select count(*) from datapool where thingname='{}' and valuestreamname='{}';".format(
         thingName,valueStreamName
     )
@@ -171,7 +175,7 @@ def verifyTargetTables(conn, owner, tables):
     verify whether required tables exist in target db or not.
     :param conn:
     :param tables:
-    :return:
+    :return: missed_tables
     '''
 
     query = "SELECT tablename FROM pg_catalog.pg_tables where tableowner='{}';".format(owner)
@@ -179,10 +183,11 @@ def verifyTargetTables(conn, owner, tables):
     curr.execute(query)
     target_tables = []
     for row in curr.fetchall():
-        target_table = row
-        target_tables.extend(target_table)
+        target_table = (row[0]).lower()
+        target_tables.append(target_table)
+    curr.close()
     #pprint(target_tables)
-    return set(tables) == set(target_tables)
+    return list(set(tables) - set(target_tables))
 
 def normalizeThingRecords(dbManager,thing):
     '''
@@ -203,7 +208,7 @@ def normalizeThingRecords(dbManager,thing):
     if not lastid or not lasttime:
         return None, None
 
-    rows = queryPropertyWithTimeWindow(dbManager,thing['KeyPropertyName'], lasttime, None)
+    rows = queryPropertyWithTimeWindow(dbManager,thing['ValueStreamName'],thing['KeyPropertyName'], lasttime, None)
     rowCount = 0
     newLatestTime = None
 
@@ -352,7 +357,7 @@ def queryLastNormalizedRow(dbManager, thing,lastid):
     return default_values
 
 
-def queryPropertyWithTimeWindow(dbManager, propertyName, starttime,endtime=None):
+def queryPropertyWithTimeWindow(dbManager, valueStreamName, propertyName, starttime,endtime=None):
     '''
     fetch property values from value stream table in source db.
     :param dbManager:
@@ -363,7 +368,7 @@ def queryPropertyWithTimeWindow(dbManager, propertyName, starttime,endtime=None)
     :return:
     '''
     query_str = "select entry_id, property_value, time,property_type from value_stream"
-    query_str += "\n where entity_id='{}'".format(thing['ValueStreamName'])
+    query_str += "\n where entity_id='{}'".format(valueStreamName)
     query_str += "\n and source_id='{}'".format(thing['ThingName'])
     query_str += "\n and property_name='{}'".format(propertyName)
     query_str += "\n and time>'{}'".format(starttime)
@@ -467,6 +472,118 @@ def pushIncreamentalDataToDb(dbManager, thing,total_values, value_types):
 
     return True
 
+def queryTableListFromThread(thread):
+    '''
+    check all thing and collect a common table list in lower case.
+    :param thread:
+    :return:
+    '''
+    required_tables=['datapool'] #default table to check.
+    for thing in thread['Things']:
+        newTable = (thing['TargetTableName']).lower()
+        if not newTable in required_tables:
+            required_tables.append(newTable)
+
+    return required_tables
+
+def checkTableExist(conn,owner,tableName,thread):
+    '''
+    check table exist or not.
+    :param conn:
+    :param owner:
+    :param tableName:
+    :param thread:
+    :return:
+    '''
+    query = "SELECT tablename FROM pg_catalog.pg_tables where tableowner='{}' and tablename='{}';".format(
+        owner,
+        tableName)
+    curr = conn.cursor()
+    curr.execute(query)
+    foundTableName = None
+    for row in curr.fetchall():
+        foundTableName = (row[0]).lower()
+
+    curr.close()
+    # pprint(target_tables)
+    return foundTableName
+
+def createTableForThread(conn,owner,tableName,thread):
+    '''
+    create requied table for buffer.
+    CREATE TABLE steamsensor
+    (
+      id SERIAL Primary Key,
+      ThingName text NOT NULL,
+      TotalFlow real NOT NULL,
+      Temperature real,
+      Pressure real,
+      lasttime timestamp with time zone NOT NULL,
+      lastid integer UNIQUE
+    );
+    ALTER TABLE steamsensor
+      OWNER TO kpiadmin;
+
+    :param conn:
+    :param owner:
+    :param tableName:
+    :param thread:
+    :return:
+    '''
+    sampleThing=None
+    for thing in thread['Things']:
+        if (thing['TargetTableName']).lower() == tableName.lower():
+            sampleThing = thing
+            break
+    if not sampleThing:
+        return False
+    create_sql = "CREATE TABLE {}\n(\n".format(tableName)
+    create_sql += "id SERIAL Primary Key,\n"
+    create_sql += "ThingName text NOT NULL,\n"
+    value_type_mapping={
+        'NUMBER': 'real',
+        'STRING': 'text',
+        'DATETIME': 'timestamp with time zone',
+        'INTEGER' :'integer',
+        'BOOLEAN' : 'boolean'
+    }
+
+    for property in sampleThing['Properties']:
+        create_sql += "{} ".format(property['PropertyName'])
+        create_sql += value_type_mapping.get(property['PropertyType'],'text')
+        if property['PropertyName'] == sampleThing['KeyPropertyName']:
+            create_sql += ' NOT NULL'
+        create_sql += ",\n"
+
+    create_sql += "lasttime timestamp with time zone NOT NULL,\n"
+    create_sql += "lastid integer UNIQUE\n);\n"
+
+    alert_sql = "ALTER TABLE {}\n".format(tableName)
+    alert_sql += "  OWNER TO {};".format(owner)
+
+    print(create_sql)
+    curr = conn.cursor()
+    curr.execute(create_sql)
+    curr.execute(alert_sql)
+    conn.commit()
+    curr.close()
+    return True
+
+
+def buildRequiredTables(conn, owner, required_tables, thread):
+    '''
+    build required tables except datapool if table doesn't exist
+    :param conn:
+    :param owner:
+    :param required_tables:
+    :param thread:
+    :return:
+    '''
+    for tableName in required_tables:
+        if tableName.lower() == 'datapool':
+            continue
+        if not checkTableExist(conn,owner,tableName,thread):
+            createTableForThread(conn,owner,tableName,thread)
 
 if __name__ == '__main__':
     kpiconfig = configuration.KpiConfiguration(os.path.join(SCRIPT_DIR,"../config/config.json"))
@@ -475,17 +592,23 @@ if __name__ == '__main__':
     dbtarget = kpiconfig.targetDBConnection
 
     dbManager = db.KpiDb(dbsource,dbtarget)
-    if verifyTargetTables(dbManager.targetConnection,kpiconfig.targetDBConnection['User'],
-                          ['steamsensor','datapool']):
-        print("oh, great, table validated.")
-    else:
-        print("Table Different")
-        exit(1)
 
     for thread in kpiconfig.threads:
+        required_tables = queryTableListFromThread(thread)
+        if dbtarget['VerifyTableStructure']:
+            missed_tables = verifyTargetTables(dbManager.targetConnection,kpiconfig.targetDBConnection['User'],required_tables)
+            if len(missed_tables) >0:
+                if dbtarget['AutoCreateTable']:
+                    buildRequiredTables(dbManager.targetConnection, kpiconfig.targetDBConnection['User'],
+                                        missed_tables, thread)
+                else:
+                    print("Required Table doesn't exist:{}".format(missed_tables))
+                    continue
+            else:
+                print("Table verified:{}\n".format(required_tables))
+
         for thing in thread['Things']:
-            if isNewThing(dbManager.targetConnection, thing['ValueStreamName'],
-                          thing['ThingName'],thing['TargetTableName']):
+            if isNewThing(dbManager.targetConnection, thing):
                 insert_sql,datapool_sql = initThingFirstRow(dbManager,thing)
                 if not insert_sql:
                     # no data presented in value stream yet.
