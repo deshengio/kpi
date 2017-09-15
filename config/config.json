@@ -1,41 +1,10 @@
 {
     "CommonProperties":[
-        {
-            "PropertyName":"TotalFlow",
-            "PropertyType":"NUMBER",
-            "DefaultValue":0.0
-        },
-        {
-            "PropertyName":"Temperature",
-            "PropertyType":"NUMBER",
-            "DefaultValue":0.0
-        },
-        {
-            "PropertyName":"Pressure",
-            "PropertyType":"NUMBER",
-            "DefaultValue":0.0
-        }
     ],
     "threads":[
         {
             "ValueStreamName":"SteamSensorValueStream",
-            
-            "Things":[
-                {
-                    "ThingName":"SteamSensor2",
-                    "TargetTableName":"SteamSensor",
-                    "KeyPropertyName":"TotalFlow"
-                },
-                {
-                    "ThingName":"SteamSensor1",
-                    "TargetTableName":"SteamSensor",
-                    "KeyPropertyName":"TotalFlow"
-                }
-            ]
-        },
-        {
-            "ValueStreamName":"SteamSensorValueStream",
-            "CommonProperties":[
+            "ThreadProperties":[
                 {
                     "PropertyName":"TotalFlow",
                     "PropertyType":"NUMBER",
@@ -54,9 +23,111 @@
             ],
             "Things":[
                 {
+                    "ThingName":"SteamSensor2",
+                    "TargetTableName":"SteamSensor",
+                    "KeyPropertyName":"TotalFlow"
+                },
+                {
+                    "ThingName":"SteamSensor1",
+                    "TargetTableName":"SteamSensor",
+                    "KeyPropertyName":"TotalFlow"
+                },
+                {
                     "ThingName":"SteamSensor3",
                     "TargetTableName":"SteamSensor",
                     "KeyPropertyName":"TotalFlow"
+                }
+            ]
+        },
+        {
+            "ValueStreamName":"SteamSensorValueStream",
+            "ThreadProperties":[
+                {
+                    "PropertyName":"Voltage",
+                    "PropertyType":"NUMBER",
+                    "DefaultValue":0.0
+                },
+                {
+                    "PropertyName":"oee",
+                    "PropertyType":"NUMBER",
+                    "DefaultValue":0.0
+                },
+                {
+                    "PropertyName":"performance",
+                    "PropertyType":"NUMBER",
+                    "DefaultValue":0.0
+                },
+                {
+                    "PropertyName":"availability",
+                    "PropertyType":"NUMBER",
+                    "DefaultValue":0.0
+                },
+                {
+                    "PropertyName":"quality",
+                    "PropertyType":"NUMBER",
+                    "DefaultValue":0.0
+                },
+                {
+                    "PropertyName":"Current",
+                    "PropertyType":"NUMBER",
+                    "DefaultValue":0.0
+                },
+                {
+                    "PropertyName":"anomalyAlertProperties",
+                    "PropertyType":"STRING",
+                    "DefaultValue":"GOOD"
+                },
+                {
+                    "PropertyName":"anomalyStatus",
+                    "PropertyType":"INTEGER",
+                    "DefaultValue":0
+                },
+                {
+                    "PropertyName":"anomalyStatusTimestamp",
+                    "PropertyType":"DATETIME",
+                    "DefaultValue":"2000-01-01"
+                },
+                {
+                    "PropertyName":"totalCount",
+                    "PropertyType":"NUMBER",
+                    "DefaultValue":0.0
+                },
+                {
+                    "PropertyName":"statusCriticality",
+                    "PropertyType":"INTEGER",
+                    "DefaultValue":0
+                },
+                {
+                    "PropertyName":"status",
+                    "PropertyType":"INTEGER",
+                    "DefaultValue":0
+                },
+                {
+                    "PropertyName":"Temperature",
+                    "PropertyType":"NUMBER",
+                    "DefaultValue":0.0
+                },
+                {
+                    "PropertyName":"goodCount",
+                    "PropertyType":"NUMBER",
+                    "DefaultValue":0.0
+                }
+            ],
+            "Things":[
+                {
+                    "ThingName":"Asset_2-1_Bender",
+                    "TargetTableName":"ManufacturingAsset",
+                    "KeyPropertyName":"Current"
+                },
+                {
+                    "ThingName":"Asset_1-1_WireEDM",
+                    "TargetTableName":"ManufacturingAsset",
+                    "KeyPropertyName":"Current"
+                },
+                {
+                    "ThingName":"Asset_1-1_SinkingEDM",
+                    "TargetTableName":"ManufacturingAsset",
+                    "KeyPropertyName":"Current"
                 }
             ]
         }
@@ -76,7 +147,10 @@
         "User":"kpiadmin",
         "Password":"kpiadmin",
         "ssl": false,
-        "AutoCreateTable":false,
-        "VerifyTableStructure":false
-    }
+        "AutoCreateTable":true,
+        "VerifyTableStructure":true
+    },
+    "SafeBuffer": 5,
+    "SafeMaxRows": 6005,
+    "BatchSize": 5
 }

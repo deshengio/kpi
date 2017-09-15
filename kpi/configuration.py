@@ -1,5 +1,11 @@
 import json
 from pprint import pprint
+import os
+import sys
+
+PACKAGE_PARENT = '..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 class KpiConfiguration():
     def __init__(self):
@@ -14,6 +20,9 @@ class KpiConfiguration():
             data = json.load(data_file)
             self.sourceDBConnection = dict(data['SourceDBConnection'])
             self.targetDBConnection = dict(data['TargetDBConnection'])
+            self.safeBuffer = data.get('SafeBuffer',5)
+            self.safeMax = data.get('SafeMaxRows', 6005)
+            self.batchSize = data.get('BatchSize', 5)
 
             self.threads=[]
             for thread in data['threads']:
@@ -35,14 +44,40 @@ class KpiConfiguration():
                 newThing[keyName] = thing[keyName]
 
             newThing['Properties']=[]
-            newThing['Properties'].extend(commonProperties)
-            if 'Properties' in thing:
-                newThing['Properties'].extend(thing['Properties'])
+            #newThing['Properties'].extend(commonProperties)
+            thingPropertiesName = []    #filter duplicated one.
+            for property in thing.get('Properties',[]):
+                if not property['PropertyName'] in thingPropertiesName:
+                    # New Property
+                    thingPropertiesName.append(property['PropertyName'])
+                    newThing['Properties'].append(property)
+
+            #if 'Properties' in thing:
+            #    newThing['Properties'].extend(thing['Properties'])
+            #support additional properties definition in Thread. thread['ThreadProperties']
+            for property in thread.get('ThreadProperties',[]):
+                if not property['PropertyName'] in thingPropertiesName:
+                    # New Property
+                    thingPropertiesName.append(property['PropertyName'])
+                    newThing['Properties'].append(property)
+
+            # merge common properties
+            for property in commonProperties:
+                if not property['PropertyName'] in thingPropertiesName:
+                    # New Property
+                    thingPropertiesName.append(property['PropertyName'])
+                    newThing['Properties'].append(property)
 
             newThread['Things'].append(newThing)
 
         return newThread
 
 if __name__ == '__main__':
-    kpiconfig = KpiConfiguration("../config/config.json")
+    kpiconfig = KpiConfiguration(os.path.join(SCRIPT_DIR,"../config/config.json"))
     pprint(kpiconfig.threads)
+    print("source:{},\ntarget:{}\n".format(kpiconfig.sourceDBConnection, kpiconfig.targetDBConnection))
+    print("safeBuffer:{},\tsafeMax:{},\tbatchSize:{}".format(
+        kpiconfig.safeBuffer,
+        kpiconfig.safeMax,
+        kpiconfig.batchSize
+    ))

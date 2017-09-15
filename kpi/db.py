@@ -13,6 +13,10 @@ class KpiDb():
         self.sourceConnection = None
         self.targetConnection = None
 
+    def __init__(self, source, target, kpiconfig):
+        self.__init__(source,target)
+        self.setDefault(kpiconfig.safeBuffer,kpiconfig.safeMax,kpiconfig.batchSize)
+
     def __init__(self, source, target):
         self.sourceConnection = None
         self.targetConnection = None
@@ -36,6 +40,11 @@ class KpiDb():
         self.safeBuffer = 5 #5 rows will be ignored in every processing.
         self.safeMax = 6005 #6000 max rows will be processed, in order to avoid memory out.
         self.batchSize = 5  # batch insert size every time.
+
+    def setDefault(self,safeBuffer, safeMax,batchSize):
+        self.safeBuffer = safeBuffer
+        self.safeMax = safeMax,
+        self.batchSize = batchSize
 
     def getSourceConnection(self):
         if not self.sourceConnection:
