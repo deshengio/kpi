@@ -11,9 +11,9 @@ PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-import configurator
-import db
-import normalizer
+from . import configurator
+from . import db
+from . import normalizer
 
 def singleProcess(thread, dbManager, dbtarget):
     '''
@@ -29,12 +29,12 @@ def singleProcess(thread, dbManager, dbtarget):
     required_tables = normalizer.queryTableListFromThread(thread)
     if dbtarget['VerifyTableStructure']:
         missed_tables = normalizer.verifyTargetTables(dbManager.targetConnection,
-                                                      kpiconfig.targetDBConnection['User'],
+                                                      dbtarget['User'],
                                                       required_tables)
         if len(missed_tables) >0:
             if dbtarget['AutoCreateTable']:
                 normalizer.buildRequiredTables(dbManager.targetConnection,
-                                               kpiconfig.targetDBConnection['User'],
+                                               dbtarget['User'],
                                                missed_tables,
                                                thread)
             else:
