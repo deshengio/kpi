@@ -382,7 +382,7 @@ def queryPropertyWithTimeWindow(thread, thing, propertyName, starttime,endtime=N
     if endtime:
         query_str += "\n and time<='{}'".format(endtime)
     query_str += "\norder by time desc"
-    query_str += "\nlimit {};".format(dbManager.safeMax)    #add max number of rows.
+    query_str += "\nlimit {};".format(thread.SafeMaxRows)    #add max number of rows.
 
     curr = thread.SourceDB.getDBConnection().cursor()
     curr.execute(query_str)
@@ -433,7 +433,7 @@ def pushIncreamentalDataToDb(thread, thing,total_values, value_types):
     curr = thread.TargetDB.getDBConnection().cursor()
     insert_full_sql = None
     for index in range(maxRows):
-        if index % dbManager.batchSize == 0:
+        if index % thread.BatchSize == 0:
             # batch process
             if insert_full_sql:
                 insert_full_sql += "\n;"
