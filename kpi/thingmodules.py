@@ -83,7 +83,7 @@ class DBConnection():
     def getDBConnection(self):
         if not self.conn:
             try:
-                conn = dbapi.connect(database=self.DatabaseName,
+                self.conn = dbapi.connect(database=self.DatabaseName,
                                      host=self.Host,
                                      port=self.Port,
                                      user=self.User,

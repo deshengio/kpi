@@ -237,8 +237,8 @@ def normalizeThingRecords(thread,thing):
         if not newLatestTime:
             newLatestTime = newTime #since it is sorted by time desc, so first one is newest one
 
-        total_values[thing['KeyPropertyName']].append(newValue)
-        value_types[thing['KeyPropertyName']] = newType
+        total_values[thing.KeyPropertyName].append(newValue)
+        value_types[thing.KeyPropertyName] = newType
 
         total_values['lasttime'].append(newTime)
         value_types['lasttime'] = 3
