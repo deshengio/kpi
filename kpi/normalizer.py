@@ -223,8 +223,8 @@ def normalizeThingRecords(dbManager,thing):
         rowCount += 1
         if rowCount < dbManager.safeBuffer+1:
             continue    #ignore latest few rows in order for safe.
-        if rowCount > dbManager.safeMax:
-            break   # stop to process if too many records.
+        #if rowCount > dbManager.safeMax:
+        #    break   # stop to process if too many records.
 
         newId, newValue, newTime, newType = row
         newValue = convertPostgreSqlValueType(newValue,newType)
@@ -374,7 +374,8 @@ def queryPropertyWithTimeWindow(dbManager, thing, propertyName, starttime,endtim
     query_str += "\n and time>'{}'".format(starttime)
     if endtime:
         query_str += "\n and time<='{}'".format(endtime)
-    query_str += "\norder by time desc;"
+    query_str += "\norder by time desc"
+    query_str += "\nlimit {};".format(dbManager.safeMax)    #add max number of rows.
 
     curr = dbManager.sourceConnection.cursor()
     curr.execute(query_str)
