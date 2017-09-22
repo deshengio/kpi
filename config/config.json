@@ -26,15 +26,27 @@
             ],
             "Things":[
                 {
-                    "ThingName":"SteamSensor2",
-                    "TargetTableName":"SteamSensor"
-                },
-                {
                     "ThingName":"SteamSensor1",
                     "TargetTableName":"SteamSensor"
                 },
                 {
+                    "ThingName":"SteamSensor2",
+                    "TargetTableName":"SteamSensor"
+                },
+                {
                     "ThingName":"SteamSensor3",
+                    "TargetTableName":"SteamSensor"
+                },
+                {
+                    "ThingName":"SteamSensor4",
+                    "TargetTableName":"SteamSensor"
+                },
+                {
+                    "ThingName":"SteamSensor5",
+                    "TargetTableName":"SteamSensor"
+                },
+                {
+                    "ThingName":"SteamSensor6",
                     "TargetTableName":"SteamSensor"
                 }
             ]
