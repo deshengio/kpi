@@ -40,7 +40,16 @@ declare
 	returnrec	RECORD;	--general return record
 begin
 	IF duration_in_sec <=0 then
-		RETURN 0.0;
+		select into returnrec
+		0 as AVERAGE,
+		0 as CYCLECOUNT,
+		0 as PRODUCTCOUNT,
+		0 as THROUGHPUT,
+		0 as AVAILABILITY,
+		0 as CAPACITYPOTENTIAL,
+		0 as EFFICIENCY;
+
+		return returnrec;
 	END IF;
 	-- raise notice 'Start from:%', now();
 	-- Caution1:    all entered time must be UTC time.
@@ -48,8 +57,8 @@ begin
 	-- Caution3:    in all query, end_time will be included, start_time will NOT be included.
 	select into var_end_time (to_timestamp(end_time_string,'YYYYMMDDHH24MISS')::timestamp with time zone) ;
 	select into var_start_time (var_end_time - duration_in_sec * interval '1 second');
-	raise notice 'end time:%', var_end_time;
-	raise notice 'start time:%', var_start_time;
+	-- raise notice 'end time:%', var_end_time;
+	-- raise notice 'start time:%', var_start_time;
 
 	----------------------------    Average Calculation ---------------
 	-- shift number will NOT be calculated here.
